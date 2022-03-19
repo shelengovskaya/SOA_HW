@@ -17,12 +17,14 @@ class Session:
         self.detective = None
         self.vigilante = None
         self.killed = set()
+        self.vigilante_voted = None
+        self.investigated = None
         self.condition = threading.Condition()
         self.messages = []
         self.is_day = True
         self.day_kill_votes = {}
         self.day_closed = set()
-        self.first_day = False # TODO: Detective actions are not implemented yet
+        self.first_day = True
 
     def add_client(self, name):
         if self.clients.add(name):
@@ -93,7 +95,7 @@ class MafiaService(pb2_grpc.MafiaServicer):
         elif request.name in session.killed:
             print("You are killed")
         elif not session.is_day:
-            if session.get_client_role(request.name) == pb2.ServerMessage.GameStartedMessage.Role.VILLAGER:
+            if session.get_client_role(request.name) != pb2.ServerMessage.GameStartedMessage.Role.VIGILANTE:
                 print("Invalid role")
             else:
                 with session.condition:
@@ -102,10 +104,13 @@ class MafiaService(pb2_grpc.MafiaServicer):
                     session.messages.append(pb2.ServerMessage(killed_message=pb2.ServerMessage.KilledMessage(name=request.name_to_kill)))
                     session.killed.add(request.name_to_kill)
 
+                    session.vigilante_voted = request.name_to_kill
+
                     self.end_game(session)
 
-                    if session.detective in session.killed:
+                    if session.detective in session.killed or session.investigated:
                         session.messages.append(pb2.ServerMessage(day_started_message=pb2.ServerMessage.DayStartedMessage()))
+                        session.is_day = True
 
                     session.condition.notify_all()
         else:
@@ -161,6 +166,8 @@ class MafiaService(pb2_grpc.MafiaServicer):
                     session.is_day = False
                     session.day_closed = set()
                     session.first_day = False
+                    session.investigated = None
+                    session.vigilante_voted = None
 
                     self.end_game(session)
                     session.messages.append(pb2.ServerMessage(night_started_message=pb2.ServerMessage.NightStartedMessage()))
@@ -168,6 +175,64 @@ class MafiaService(pb2_grpc.MafiaServicer):
                     session.condition.notify_all()
 
         return pb2.CloseDayResponse()
+
+    def Investigate(self, request, context):
+        print(request)
+
+        session = self.sessions.get(request.session_id)
+        if session is None:
+            print("Session not found " + request.session_id)
+        elif not session.in_progress:
+            print("Game is not started")
+        elif request.name in session.killed:
+            print("You are killed")
+        elif session.is_day:
+            print("Is not allowed during day")
+        else:
+            if session.get_client_role(request.name) != pb2.ServerMessage.GameStartedMessage.Role.DETECTIVE:
+                print("Invalid role")
+            else:
+                with session.condition:
+                    print("Investigated = " + str(request.name_to_investigate))
+
+                    session.investigated = request.name_to_investigate
+
+                    if session.vigilante_voted:
+                        session.messages.append(pb2.ServerMessage(day_started_message=pb2.ServerMessage.DayStartedMessage()))
+                        session.is_day = True
+
+                    session.condition.notify_all()
+
+        return pb2.InvestigateResponse()
+
+    def PublishInvestigation(self, request, context):
+        print(request)
+
+        session = self.sessions.get(request.session_id)
+        if session is None:
+            print("Session not found " + request.session_id)
+        elif not session.in_progress:
+            print("Game is not started")
+        elif request.name in session.killed:
+            print("You are killed")
+        elif not session.is_day:
+            print("Is not allowed during night")
+        else:
+            if session.get_client_role(request.name) != pb2.ServerMessage.GameStartedMessage.Role.DETECTIVE:
+                print("Invalid role")
+            else:
+                with session.condition:
+                    print("Investigated = " + str(session.investigated))
+
+                    if session.vigilante == session.investigated:
+                        session.killed.add(session.investigated)
+                        session.messages.append(pb2.ServerMessage(killed_message=pb2.ServerMessage.KilledMessage(name=session.investigated)))
+
+                        self.end_game(session)
+
+                        session.condition.notify_all()
+
+        return pb2.InvestigateResponse()
 
     def Connect(self, request, context):
         print(request)
