@@ -1,0 +1,140 @@
+syntax = "proto3";
+
+service Mafia {
+  rpc Connect (ConnectMessage) returns (stream ServerMessage) {}
+
+  rpc Say (SayMessage) returns (SayResponse) {}
+
+  rpc CloseDay (CloseDayMessage) returns (CloseDayResponse) {}
+
+  rpc Kill (KillMessage) returns (KillResponse) {}
+
+  rpc Investigate (InvestigateMessage) returns (InvestigateResponse) {}
+
+  rpc PublishInvestigation (PublishInvestigationMessage) returns (PublishInvestigationResponse) {}
+
+  rpc Disconnect(DisconnectMessage) returns (DisconnectResponse) {}
+}
+
+message ConnectMessage {
+  string name = 1;
+}
+
+message DisconnectMessage {
+  string session_id = 1;
+}
+
+message DisconnectResponse {
+}
+
+message SayMessage {
+  string session_id = 1;
+  string name = 2;
+  string message = 3;
+}
+
+message SayResponse {
+}
+
+message CloseDayMessage {
+  string session_id = 1;
+  string name = 2;
+}
+
+message CloseDayResponse {
+}
+
+message KillMessage {
+  string session_id = 1;
+  string name = 2;
+  string name_to_kill = 3;
+}
+
+message KillResponse {
+}
+
+message InvestigateMessage {
+  string session_id = 1;
+  string name = 2;
+  string name_to_investigate = 3;
+}
+
+message InvestigateResponse {
+  bool is_vigilante = 1;
+}
+
+message PublishInvestigationMessage {
+  string session_id = 1;
+  string name = 2;
+}
+
+message PublishInvestigationResponse {
+}
+
+message ServerMessage {
+  oneof message_type {
+    NewSessionMessage new_session_message = 1;
+    ClientConnectedMessage client_connected_message = 2;
+    ClientLeftMessage client_left_message = 3;
+    GameStartedMessage game_started_message = 4;
+    DayStartedMessage day_started_message = 5;
+    NightStartedMessage night_started_message = 6;
+    KilledMessage killed_message = 7;
+    InvestigationResultMessage investigation_result_message = 8;
+    ChatMessage chat_message = 9;
+    GameEndedMessage game_ended_message = 10;
+  }
+
+  message NewSessionMessage {
+    string session_id = 1;
+  }
+
+  message ClientConnectedMessage {
+    string name = 1;
+  }
+
+  message GameStartedMessage {
+    Role role = 1;
+
+    enum Role {
+      DEFAULT_VALUE = 0;
+      DETECTIVE = 1;
+      VIGILANTE = 2;
+      VILLAGER = 3;
+      KILLED = 4;
+    }
+  }
+
+  message DayStartedMessage {
+  }
+
+  message NightStartedMessage {
+  }
+
+  message KilledMessage {
+    string name = 1;
+  }
+
+  message InvestigationResultMessage {
+    string name = 1;
+  }
+
+  message ClientLeftMessage {
+    string name = 1;
+  }
+
+  message ChatMessage {
+    string name = 1;
+    string message = 2;
+  }
+
+  message GameEndedMessage {
+    Result result = 1;
+
+    enum Result {
+      DEFAULT_VALUE = 0;
+      VILLAGERS = 1;
+      VIGILANTE = 2;
+    }
+  }
+}
