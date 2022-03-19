@@ -35,6 +35,10 @@ def run():
                 stub.Kill(pb2.KillMessage(session_id=session_id, name=sys.argv[1], name_to_kill=command[len("kill "):]))
             elif command == "close":
                 stub.CloseDay(pb2.CloseDayMessage(session_id=session_id, name=sys.argv[1]))
+            elif command.startswith("investigate "):
+                stub.Investigate(pb2.InvestigateMessage(session_id=session_id, name=sys.argv[1], name_to_investigate=command[len("investigate "):]))
+            elif command == "publish":
+                stub.PublishInvestigation(pb2.PublishInvestigationMessage(session_id=session_id, name=sys.argv[1]))
             else:
                 print("Invalid command, expected one of [say, ]")
 
