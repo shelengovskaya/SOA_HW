@@ -1,4 +1,3 @@
-
 import pika
 from grabber import Grabber
 from queue import Queue
