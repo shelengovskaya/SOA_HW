@@ -19,7 +19,9 @@ python3 rpc_client.py https://en.wikipedia.org/wiki/Camel_case https://en.wikipe
 Результат:
 ```
  [x] Requesting: https://en.wikipedia.org/wiki/Camel_case, https://en.wikipedia.org/wiki/Tall_Man_lettering
- [.] Got 1
+ [.] Got : 1
+https://en.wikipedia.org/wiki/Camel_case
+https://en.wikipedia.org/wiki/Tall_Man_lettering
 ```
 ### Пример 2:
 ```
@@ -28,5 +30,8 @@ python3 rpc_client.py https://en.wikipedia.org/wiki/Robert_de_Umfraville https:/
 Результат:
 ```
  [x] Requesting: https://en.wikipedia.org/wiki/Robert_de_Umfraville, https://en.wikipedia.org/wiki/Order_of_chivalry
- [.] Got 2
+ [.] Got : 2
+https://en.wikipedia.org/wiki/Robert_de_Umfraville
+https://en.wikipedia.org/wiki/Order_of_the_Garter
+https://en.wikipedia.org/wiki/Order_of_chivalry
 ```
