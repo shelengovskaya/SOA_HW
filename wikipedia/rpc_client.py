@@ -36,7 +36,7 @@ class WikiRpcClient(object):
             body=message)
         while self.response is None:
             self.connection.process_data_events()
-        return int(self.response)
+        return self.response.decode()
 
 
 wiki_rpc = WikiRpcClient()
@@ -46,4 +46,4 @@ print(" [x] Requesting: " + sys.argv[1] + ', ' + sys.argv[2])
 message = sys.argv[1]+' '+sys.argv[2]
 
 response = wiki_rpc.call(message)
-print(" [.] Got {}".format(response))
+print(" [.] Got :", response)
