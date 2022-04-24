@@ -3,7 +3,8 @@
 ## Запуск:
 
 ```
-git clone ...
+git clone https://github.com/shelengovskaya/SOA_HW.git
+cd rest
 docker-compose build
 docker-compose up
 ```
