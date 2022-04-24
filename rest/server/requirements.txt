@@ -1,0 +1,6 @@
+flask
+fpdf
+pika
+flask-sqlalchemy
+flask-jwt-extended
+textract
