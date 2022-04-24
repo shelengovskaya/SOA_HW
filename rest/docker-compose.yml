@@ -2,9 +2,9 @@ version: '3'
 
 services:
     stats_server:
+        image: rabbitmq
         build:
             context: ./server
-        image: rabbitmq
         ports:
             - 5000:5000
         environment:
@@ -23,7 +23,6 @@ services:
         hostname: rabbitmq_server
         ports:
             - 5673:5673
-            - 15672:15672
         healthcheck:
             test: rabbitmq-diagnostics -q ping
             interval: 10s

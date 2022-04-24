@@ -13,7 +13,74 @@ from flask import Flask, jsonify, request, abort, send_file
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
 from sqlalchemy.exc import IntegrityError
 
-from models import db, User, Stats
+from flask_sqlalchemy import SQLAlchemy
+
+database = SQLAlchemy()
+
+
+class statistics(database.Model):
+    id = database.Column(database.Integer, primary_key=True)
+    sessions = database.Column(database.Integer, default=0)
+    victories = database.Column(database.Integer, default=0)
+    defeats = database.Column(database.Integer, default=0)
+    time_in_game = database.Column(database.Integer, default=0)
+
+    ATTRS_PUBLIC = ('sessions', 'victories',
+                    'defeats', 'time_in_game')
+
+    def to_dict(self):
+        result = dict(map(
+            lambda attr: (attr, getattr(self, attr)),
+            self.ATTRS_PUBLIC
+        ))
+        return result
+
+
+class User(database.Model):
+    id = database.Column(database.Integer, primary_key=True)
+    username = database.Column(database.String(), unique=True, nullable=False)
+    password = database.Column(database.String(), nullable=False)
+    email = database.Column(database.String())
+    gender = database.Column(database.String())
+    avatar = database.Column(database.String())
+    statistics_id = database.Column(database.Integer, database.ForeignKey(statistics.id))
+    statistics = database.relationship(statistics, backref='statistics', uselist=False)
+
+    ATTRS_PUBLIC = ('username', 'email', 'gender', 'avatar')
+    __ATTRS_PRIVATE = ('password',)
+
+    __ATTRS_ALL = ATTRS_PUBLIC + __ATTRS_PRIVATE
+
+    def safe_update(self, data):
+        if not self.statistics:
+            self.statistics = statistics()
+        for attr, value in data.items():
+            if attr in (self.__ATTRS_ALL):
+                setattr(self, attr, value)
+        if 'statistics' in data:
+            for attr, value in data['statistics'].items():
+                if attr in statistics.ATTRS_PUBLIC:
+                    setattr(self.statistics, attr, value)
+
+        database.session.add(self)
+        database.session.commit()
+
+    def to_dict(self):
+        result = dict(map(
+            lambda attr: (attr, getattr(self, attr)),
+            self.ATTRS_PUBLIC
+        ))
+        result['avatar'] = self.avatar
+        result['user_id'] = self.id
+        result['username'] = self.username
+        result['user_path'] = f'/user/{self.id}'
+        result['statistics_path'] = f'/user/statistics/{self.id}'  
+        return result
+
+    def delete(self):
+        statistics.query.filter_by(id=self.statistics.id).delete()
+        database.session.delete(self)
+        database.session.commit()
 
 
 def publish(user):
@@ -32,18 +99,17 @@ def publish(user):
 app = Flask(__name__)
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///stats.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///statistics.database'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 
-app.config['JWT_SECRET_KEY'] = 'my_super_secret_jwt_key'
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = False
 
-
-db.init_app(app)
+database.init_app(app)
 
 with app.app_context():
-    db.create_all()
+    database.create_all()
 
+app.config['JWT_SECRET_KEY'] = 'secret_key'
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = False
 
 jwt = JWTManager(app)
 
@@ -70,7 +136,13 @@ def handle_params(data):
     avatar = data.get('avatar', None)
 
 
-@app.route('/users', methods=['POST'])
+@app.route('/all_users', methods=['GET'])
+def get_all_users():
+    users = list(map(lambda user: user.to_dict(), User.query.all()))
+    return jsonify(users)
+
+
+@app.route('/add_user', methods=['POST'])
 def register():
     data = get_data()
     username = data.get('username', None)
@@ -82,7 +154,7 @@ def register():
     handle_params(data)
 
     new_user = User()
-    new_user.Stats = Stats()
+    new_user.statistics = statistics()
 
     try:
         new_user.safe_update(data)
@@ -113,7 +185,7 @@ def login():
     return jsonify({'token': access_token, 'user': f'/users/{user.id}'}), 200
 
 
-@app.route('/users/<int:user_id>', methods=['GET'], endpoint='get_user')
+@app.route('/user/<int:user_id>', methods=['GET'])
 def get_user(user_id):
     user = User.query.get(user_id)
     if user is None:
@@ -121,19 +193,13 @@ def get_user(user_id):
     return jsonify(user.to_dict())
 
 
-@app.route('/users/me', methods=['GET'])
+@app.route('/me', methods=['GET'])
 @jwt_required()
 def get_me():
     return get_user(get_jwt_identity())
 
 
-@app.route('/users', methods=['GET'])
-def get_all_users():
-    users = list(map(lambda user: user.to_dict(), User.query.all()))
-    return jsonify(users)
-
-
-@app.route('/users/<int:user_id>', methods=['PUT', 'PATCH', 'DELETE'], endpoint='modify_user')
+@app.route('/user/<int:user_id>', methods=['PUT', 'PATCH', 'DELETE'])
 @jwt_required()
 def modify_user(user_id):
     if get_jwt_identity() != user_id:
@@ -141,60 +207,58 @@ def modify_user(user_id):
     user = User.query.get(user_id)
     if request.method == 'DELETE':
         print(user.avatar)
-        # if user.avatar:
-        #     (IMG_PATH / user.avatar).unlink()
+
         user.delete()
-        return Response(status=204)
+        return 'User deleted.'
 
     data = get_data()
     handle_params(data)
     avatar_path = data.get('avatar', None)
-    # if avatar_path and user.avatar:
-    #     (IMG_PATH / user.avatar).unlink()
+
     user.safe_update(data)
     return get_user(user_id)
 
 
-@app.route('/users/<int:user_id>/stats', methods=['GET', 'PUT', 'PATCH'], endpoint='handle_stats')
+@app.route('/user/statistics/<int:user_id>', methods=['GET', 'PATCH'])
 @jwt_required()
-def handle_stats(user_id):
+def handle_statistics(user_id):
     if get_jwt_identity() != user_id:
         abort(403)
     user = User.query.get(user_id)
     if request.method == 'GET':
-        return jsonify(user.stats.to_dict())
+        return jsonify(user.statistics.to_dict())
 
     data = get_data()
-    data = {'stats': data}
+    data = {'statistics': data}
     user.safe_update(data)
-    return jsonify(user.stats.to_dict())
+    return jsonify(user.statistics.to_dict())
 
 
 def make_data(user):
     result = user.to_dict()
-    result.update(user.stats.to_dict())
+    result.update(user.statistics.to_dict())
     result['id'] = user.id
     result['username'] = user.username
     return result
 
-def generate_report(player_dict):
+def generate_report(user_info):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font('Arial', '', 15)
-    avatar_fname = player_dict.get('avatar', None)
+    pdf.set_font('Arial', '', 22)
+    avatar_fname = user_info.get('avatar', None)
     if avatar_fname:
-        pdf.image(name=str(pathlib.Path('./img').absolute() / avatar_fname), w=70, h=70)
+        pdf.image(name=str(pathlib.Path('./img').absolute() / avatar_fname), w=150, h=100)
 
-    for k in ('username', 'gender', 'email', 'total_sessions', 'total_victories', 'total_defeats', 'total_time'):
-        pdf.cell(70, 10, f'{k}: {player_dict[k]}', ln=1)
-    path = str(f"{player_dict['id']}.pdf")
+    for k in ('username', 'gender', 'email', 'sessions', 'victories', 'defeats', 'time_in_game'):
+        pdf.cell(70, 10, f'{k}: {user_info[k]}', ln=1)
+    path = str(f"{user_info['id']}.pdf")
     pdf.output(path).encode('latin-1')
     return path
 
 def make_pdf(user):
     def make_dict(user):
         result = user.to_dict()
-        result.update(user.stats.to_dict())
+        result.update(user.statistics.to_dict())
         result['id'] = user.id
         result['username'] = user.username
         return result
@@ -203,17 +267,17 @@ def make_pdf(user):
     return generate_report(user)
 
 
-@app.route('/users/<int:user_id>/pdf', methods=['POST', 'GET'], endpoint='handle_stats_file')
+@app.route('/user/pdf/<int:user_id>', methods=['POST', 'GET'])
 @jwt_required()
-def handle_stats_file(user_id):
+def handle_statistics_file(user_id):
     if get_jwt_identity() != user_id:
         abort(403)
     user = User.query.get(user_id)
     if request.method == 'POST':
         path = make_pdf(user)
-        return jsonify({'url': f'/users/{user_id}/pdf'})
+        return jsonify({'request_path': f'/user/pdf/{user_id}'})
     else:
-        return send_file('{}.pdf'.format(user_id), download_name=f'{user.username}_stats.pdf')
+        return send_file('{}.pdf'.format(user_id), download_name=f'{user.username}.pdf')
 
 
 if __name__ == '__main__':

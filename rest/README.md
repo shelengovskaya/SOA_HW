@@ -4,29 +4,20 @@
 
 ```
 git clone https://github.com/shelengovskaya/SOA_HW.git
-cd rest
+cd SOA_HW/rest
 docker-compose build
 docker-compose up
 ```
 
 ## REST API
 
-`GET /users` - вывод всех пользователей
-
-`POST /users` - регистрация пользователя (получение jwt-token)
-
+`GET /all_users` - вывод всех пользователей
+`POST /add_user` - регистрация пользователя (получение jwt-token)
 `POST /login` - вход (получение jwt-token)
-
-`GET /users/{user_id}` - получить информацию о пользователе
-
-`PATCH/PUT /users/{user_id}` - изменить информацию о себе
-
-`DELETE /users/{user_id}` - удалить себя
-
-`GET /users/{user_id}/stats` - получить свою статистику
-
-`PATCH/PUT /users/{user_id}/stats` - изменить свою стаистику в играх
-
-`POST /users/{user_id}/pdf` - сформировать pdf с информацией о пользователе
-
-`GET /users/{user_id}/pdf` - получить pdf с информацией о пользователе
+`GET /user/{user_id}` - получить информацию о пользователе
+`PATCH/PUT /user/{user_id}` - изменить информацию о себе
+`DELETE /user/{user_id}` - удалить себя
+`GET /user/statistics/{user_id}` - получить свою статистику
+`PATCH/PUT /user/statistics/{user_id}` - изменить свою стаистику в играх
+`POST /user/pdf/{user_id}` - сформировать pdf с информацией о пользователе
+`GET /users/pdf/{user_id}` - получить pdf с информацией о пользователе
