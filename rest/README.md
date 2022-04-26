@@ -19,13 +19,13 @@ docker-compose up
 
 `GET /user/{user_id}` - получить информацию о пользователе
 
-`PATCH/PUT /user/{user_id}` - изменить информацию о себе
+`PATCH /user/{user_id}` - изменить информацию о себе
 
 `DELETE /user/{user_id}` - удалить себя
 
 `GET /user/statistics/{user_id}` - получить свою статистику
 
-`PATCH/PUT /user/statistics/{user_id}` - изменить свою стаистику в играх
+`PATCH /user/statistics/{user_id}` - изменить свою стаистику в играх
 
 `POST /user/pdf/{user_id}` - сформировать pdf с информацией о пользователе
 
