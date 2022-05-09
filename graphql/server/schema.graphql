@@ -1,0 +1,37 @@
+type Comment {
+  id: ID!
+  author: String!
+  content: String!
+}
+
+input CommentInput {
+  author: String!
+  content: String!
+}
+
+type Game {
+  id: ID!
+  score: Score!
+  finished: Boolean!
+  comments: [Comment!]!
+}
+
+type Mutation {
+  comment(
+    gameId: Int!,
+    comment: CommentInput!
+    ): Comment!
+}
+
+type Score {
+  id: ID!
+  mafia: Int!
+  citizen: Int!
+}
+
+type Query {
+  games(
+    finished: Boolean = null
+  ): [Game!]!
+  game(id: Int!): Game!
+}

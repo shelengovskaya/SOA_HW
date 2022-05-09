@@ -1,0 +1,16 @@
+aiohttp
+async-timeout
+attrs
+certifi
+chardet
+gql
+graphql-core
+idna
+multidict
+requests
+typing-extensions
+urllib3
+websockets
+yarl
+unicode
+Pygments
