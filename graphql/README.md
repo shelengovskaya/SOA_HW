@@ -5,19 +5,23 @@
 `docker run -p 8000:8000 shellizaveta/graphql-mafia-server`
 
 или
-
-`cd server
+```
+cd server
 docker build -t graphql-mafia-server .
-docker run -p 8000:8000 graphql-mafia-server`
+docker run -p 8000:8000 graphql-mafia-server
+```
 
 ### Запуск клиента
 
-`cd client
+```
+cd client
 pip install -r requirements.txt
-python3 client.py "<YOUR_NAME>"`
+python3 client.py "<YOUR_NAME>"
+```
 
 ### Команды
 
+```
 'all games' - вывести все игры
 'games finished' - вывести все законченные игры
 'games unfinished' - вывести все незаконченные игры
@@ -25,6 +29,7 @@ python3 client.py "<YOUR_NAME>"`
 'game <id> score' - получить счет игры
 'add comment <id> <comment>' - добавить комментарий к игре
 'exit' or Ctrl^C - выйти из программы
+```
 
 ### Посмотреть пример работы через bash
 
